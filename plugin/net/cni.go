@@ -17,6 +17,7 @@ import (
 	weaveapi "github.com/weaveworks/weave/api"
 	weavenet "github.com/weaveworks/weave/net"
 	ipamplugin "github.com/weaveworks/weave/plugin/ipam"
+	"github.com/weaveworks/weave/common"
 )
 
 var (
@@ -44,6 +45,7 @@ func loadNetConf(bytes []byte) (*NetConf, error) {
 }
 
 func (c *CNIPlugin) getIP(ipamType string, args *skel.CmdArgs) (newResult *current.Result, err error) {
+	common.Log.Debugln("[net cni.go] getIP")
 	var result types.Result
 	// Default IPAM is Weave's own
 	if ipamType == "" {
@@ -66,6 +68,7 @@ func (c *CNIPlugin) getIP(ipamType string, args *skel.CmdArgs) (newResult *curre
 }
 
 func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
+	common.Log.Debugln("[net cni.go] CmdAdd")
 	conf, err := loadNetConf(args.StdinData)
 	if err != nil {
 		return err

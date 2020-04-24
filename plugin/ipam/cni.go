@@ -8,9 +8,11 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
+	"github.com/weaveworks/weave/common"
 )
 
 func (i *Ipam) CmdAdd(args *skel.CmdArgs) error {
+	common.Log.Debugln("[ipam cni.go] CmdAdd")
 	var conf types.NetConf
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
@@ -24,6 +26,7 @@ func (i *Ipam) CmdAdd(args *skel.CmdArgs) error {
 
 func (i *Ipam) Allocate(args *skel.CmdArgs) (types.Result, error) {
 	// extract the things we care about
+	common.Log.Debugln("[ipam cni.go] Allocate")
 	conf, err := loadIPAMConf(args.StdinData)
 	if err != nil {
 		return nil, err

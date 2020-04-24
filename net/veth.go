@@ -10,10 +10,12 @@ import (
 	"github.com/j-keck/arping"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"github.com/weaveworks/weave/common"
 )
 
 // create and attach a veth to the Weave bridge
 func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bool, errIfLinkExist bool, init func(peer netlink.Link) error) (*netlink.Veth, error) {
+	common.Log.Debugln("[veth.go] CreateAndAttachVeth create and attach a veth to the Weave bridge")
 	bridge, err := netlink.LinkByName(bridgeName)
 	if err != nil {
 		return nil, fmt.Errorf(`bridge "%s" not present; did you launch weave?`, bridgeName)
@@ -73,6 +75,7 @@ func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bo
 }
 
 func AddAddresses(link netlink.Link, cidrs []*net.IPNet) (newAddrs []*net.IPNet, err error) {
+	common.Log.Debugln("[veth.go] AddAddresses")
 	existingAddrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get IP address for %q: %v", link.Attrs().Name, err)
@@ -112,6 +115,7 @@ func interfaceExistsInNamespace(netNSPath string, ifName string) bool {
 }
 
 func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMulticastRoute bool, cidrs []*net.IPNet, keepTXOn bool, hairpinMode bool) error {
+	common.Log.Debugln("[veth.go] AttachContainer")
 	ns, err := netns.GetFromPath(netNSPath)
 	if err != nil {
 		return err
@@ -154,6 +158,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 
 // setupIfaceAddrs expects to be called in the container's netns
 func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IPNet) error {
+	common.Log.Debugln("[veth.go] setupIfaceAddrs expects to be called in the container's netns")
 	newAddresses, err := AddAddresses(veth, cidrs)
 	if err != nil {
 		return err
@@ -207,6 +212,7 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 
 // setupIface expects to be called in the container's netns
 func setupIface(ifaceName, newIfName string) error {
+	common.Log.Debugln("[veth.go] setupIface expects to be called in the container's netns")
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
@@ -247,6 +253,7 @@ func ConfigureARP(prefix, rootPath string) error {
 }
 
 func DetachContainer(netNSPath, id, ifName string, cidrs []*net.IPNet) error {
+	common.Log.Debugln("[veth.go] DetachContainer")
 	ns, err := netns.GetFromPath(netNSPath)
 	if err != nil {
 		return err

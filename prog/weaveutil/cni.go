@@ -15,6 +15,7 @@ import (
 func cniNet(args []string) error {
 	weave := weaveapi.NewClient(os.Getenv("WEAVE_HTTP_ADDR"), common.Log)
 	n := netplugin.NewCNIPlugin(weave)
+	common.Log.Debugln("[weave-util] cni.go cniNet")
 	cni.PluginMain(n.CmdAdd, n.CmdDel, version.PluginSupports("0.1.0", "0.2.0", "0.3.0"))
 	return nil
 }
@@ -22,6 +23,7 @@ func cniNet(args []string) error {
 func cniIPAM(args []string) error {
 	weave := weaveapi.NewClient(os.Getenv("WEAVE_HTTP_ADDR"), common.Log)
 	i := ipamplugin.NewIpam(weave)
+	common.Log.Debugln("[weave-util] cni.go cniIPAM")
 	cni.PluginMain(i.CmdAdd, i.CmdDel, version.PluginSupports("0.1.0", "0.2.0", "0.3.0"))
 	return nil
 }

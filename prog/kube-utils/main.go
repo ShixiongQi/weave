@@ -361,7 +361,7 @@ func main() {
 			common.Log.Fatalf("[kube-peers] Could not update peer list: %v", err)
 		}
 		common.Log.Infoln("[kube-peers] Added myself to peer list", list)
-
+		common.Log.Infoln("[kube-utils] main.go")
 		err = reclaimRemovedPeers(c, cml, peerName, nodeName)
 		if err != nil {
 			common.Log.Fatalf("[kube-peers] Error while reclaiming space: %v", err)

@@ -109,7 +109,7 @@ func NewAllocator(config Config) *Allocator {
 	} else {
 		participant = paxos.NewNode(config.OurName, config.OurUID, 0)
 	}
-
+	common.Log.Debugln("[allocator] NewAllocator")
 	if config.Tracker != nil {
 		onUpdate = func(prev []address.Range, curr []address.Range, local bool) {
 			if err := config.Tracker.HandleUpdate(prev, curr, local); err != nil {
@@ -158,6 +158,7 @@ func ParseCIDRSubnet(cidrStr string) (cidr address.CIDR, err error) {
 
 // Start runs the allocator goroutine
 func (alloc *Allocator) Start() {
+	common.Log.Debugln("[allocator] Start")
 	loadedPersistedData := alloc.loadPersistedData()
 	switch {
 	case loadedPersistedData && len(alloc.seed) != 0:
@@ -196,6 +197,7 @@ func (alloc *Allocator) Stop() {
 
 // Given an operation, try it, and add it to the pending queue if it didn't succeed
 func (alloc *Allocator) doOperation(op operation, ops *[]operation) {
+	common.Log.Debugln("[allocator] doOperation")
 	alloc.actionChan <- func() {
 		if alloc.shuttingDown {
 			op.Cancel()
@@ -305,6 +307,7 @@ func (alloc *Allocator) Prime() {
 // Allocate (Sync) - get new IP address for container with given name in range
 // if there isn't any space in that range we block indefinitely
 func (alloc *Allocator) Allocate(ident string, r address.CIDR, isContainer bool, hasBeenCancelled func() bool) (address.Address, error) {
+	common.Log.Debugln("[allocator] Allocate (Sync) - get new IP address for container with given name in range")
 	resultChan := make(chan allocateResult)
 	op := &allocate{
 		resultChan:       resultChan,
@@ -320,6 +323,7 @@ func (alloc *Allocator) Allocate(ident string, r address.CIDR, isContainer bool,
 
 // Lookup (Sync) - get existing IP addresses for container with given name in range
 func (alloc *Allocator) Lookup(ident string, r address.Range) ([]address.CIDR, error) {
+	common.Log.Debugln("[allocator] Lookup (Sync) - get existing IP addresses for container with given name in range")
 	resultChan := make(chan []address.CIDR)
 	alloc.actionChan <- func() {
 		resultChan <- alloc.ownedInRange(ident, r)
@@ -329,6 +333,7 @@ func (alloc *Allocator) Lookup(ident string, r address.Range) ([]address.CIDR, e
 
 // Claim an address that we think we should own (Sync)
 func (alloc *Allocator) Claim(ident string, cidr address.CIDR, isContainer, noErrorOnUnknown bool, hasBeenCancelled func() bool) error {
+	common.Log.Debugln("[allocator] Claim an address that we think we should own (Sync)")
 	resultChan := make(chan error)
 	op := &claim{
 		resultChan:       resultChan,
@@ -357,6 +362,7 @@ func (alloc *Allocator) ContainerDied(ident string) {
 
 // ContainerDestroyed called from the updater interface.  Async.
 func (alloc *Allocator) ContainerDestroyed(ident string) {
+	common.Log.Debugln("[allocator] ContainerDestroyed")
 	alloc.actionChan <- func() {
 		if alloc.hasOwnedByContainer(ident) {
 			alloc.debugln("Container", ident, "destroyed; removing addresses")
@@ -367,6 +373,7 @@ func (alloc *Allocator) ContainerDestroyed(ident string) {
 }
 
 func (alloc *Allocator) removeDeadContainers() {
+	common.Log.Debugln("[allocator] removeDeadContainers")
 	cutoff := alloc.now().Add(-containerDiedTimeout)
 	for ident, timeOfDeath := range alloc.dead {
 		if timeOfDeath.Before(cutoff) {
@@ -379,6 +386,7 @@ func (alloc *Allocator) removeDeadContainers() {
 }
 
 func (alloc *Allocator) ContainerStarted(ident string) {
+	common.Log.Debugln("[allocator] ContainerStarted")
 	alloc.actionChan <- func() {
 		delete(alloc.dead, ident) // delete is no-op if key not in map
 	}
@@ -406,6 +414,7 @@ func (alloc *Allocator) Delete(ident string) error {
 func (alloc *Allocator) delete(ident string) error {
 	cidrs := alloc.removeAllOwned(ident)
 	if len(cidrs) == 0 {
+		common.Log.Debugln("[allocator] Delete")
 		return fmt.Errorf("Delete: no addresses for %s", ident)
 	}
 	for _, cidr := range cidrs {

@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"log"
+
 	"github.com/containernetworking/cni/pkg/ipam"
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
@@ -68,6 +70,12 @@ func (c *CNIPlugin) getIP(ipamType string, args *skel.CmdArgs) (newResult *curre
 }
 
 func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
+	logFileName := "/users/sqi009/weave_net_cmdAdd_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: cni.go]",log.Lmicroseconds)
+	debugLog.Println("[weave-net] cmdAdd start")
+
 	common.Log.Debugln("[net cni.go] CmdAdd")
 	conf, err := loadNetConf(args.StdinData)
 	if err != nil {
@@ -80,13 +88,14 @@ func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
 	if conf.IPMasq {
 		return fmt.Errorf("IP Masquerading functionality not supported")
 	}
-
+	debugLog.Println("[weave-net] IPAM start")
 	result, err := c.getIP(conf.IPAM.Type, args)
 	if err != nil {
 		return fmt.Errorf("unable to allocate IP address: %s", err)
 	}
 	// Only expecting one address
 	ip := result.IPs[0]
+	debugLog.Println("[weave-net] IPAM finish")
 
 	// If config says nothing about routes or gateway, default one will be via the bridge
 	if len(result.Routes) == 0 && ip.Gateway == nil {
@@ -140,17 +149,22 @@ func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
 		}
 		id = fmt.Sprintf("%x", data)
 	}
-
+	debugLog.Println("[weave-net] AttachContainer start")
 	if err := weavenet.AttachContainer(args.Netns, id, args.IfName, conf.BrName, conf.MTU, false, []*net.IPNet{&ip.Address}, false, conf.HairpinMode); err != nil {
 		return err
 	}
+	debugLog.Println("[weave-net] AttachContainer finish")
+	debugLog.Println("[weave-net] setupRoute start")	
 	if err := weavenet.WithNetNSLink(ns, args.IfName, func(link netlink.Link) error {
 		return setupRoutes(link, args.IfName, ip.Address, ip.Gateway, result.Routes)
 	}); err != nil {
 		return fmt.Errorf("error setting up routes: %s", err)
 	}
-
+	debugLog.Println("[weave-net] setupRoute finish")
 	result.DNS = conf.DNS
+
+	debugLog.Println("[weave-net] cmdAdd finish")
+
 	return types.PrintResult(result, conf.CNIVersion)
 }
 
@@ -183,12 +197,19 @@ func setupRoutes(link netlink.Link, name string, ipnet net.IPNet, gw net.IP, rou
 //   "Plugins should generally complete a DEL action without error even if some resources are missing"
 // this method should therefore return nil in most, if not all, cases.
 func (c *CNIPlugin) CmdDel(args *skel.CmdArgs) error {
+
+	logFileName := "/users/sqi009/weave_net_cmdDel_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: cni.go]",log.Lmicroseconds)
+	debugLog.Println("[weave-net] cmdDel start")
+
 	conf, err := loadNetConf(args.StdinData)
 	if err != nil {
 		logOnStderr(err)
 		return nil
 	}
-
+	debugLog.Println("[weave-net] delete link start")
 	// As of CNI 0.3 spec, runtimes can send blank if they just want the address deallocated
 	if args.Netns != "" {
 		if err = weavenet.WithNetNSByPath(args.Netns, func() error {
@@ -202,7 +223,8 @@ func (c *CNIPlugin) CmdDel(args *skel.CmdArgs) error {
 			logOnStderr(fmt.Errorf("error removing interface %q: %s", args.IfName, err))
 		}
 	}
-
+	debugLog.Println("[weave-net] delete link finish")
+	debugLog.Println("[weave-net] release IP address start")
 	// Default IPAM is Weave's own
 	if conf.IPAM.Type == "" {
 		err = ipamplugin.NewIpam(c.weave).Release(args)
@@ -218,6 +240,8 @@ func (c *CNIPlugin) CmdDel(args *skel.CmdArgs) error {
 		logOnStderr(fmt.Errorf("unable to release IP address: %s", err))
 		return err
 	}
+	debugLog.Println("[weave-net] release IP address finish")
+	debugLog.Println("[weave-net] cmdDel finish")	
 	return nil
 }
 

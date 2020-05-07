@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 
+	"log"
+	"os"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
@@ -12,15 +15,25 @@ import (
 )
 
 func (i *Ipam) CmdAdd(args *skel.CmdArgs) error {
+
+	logFileName := "/users/sqi009/weave_ipam_cmdAdd_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: cni.go]",log.Lmicroseconds)
+	debugLog.Println("[weave-ipam] cmdAdd start")
+
 	common.Log.Debugln("[ipam cni.go] CmdAdd")
 	var conf types.NetConf
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
 	}
+	debugLog.Println("[weave-ipam] ipam allocate start")
 	result, err := i.Allocate(args)
 	if err != nil {
 		return err
 	}
+	debugLog.Println("[weave-ipam] ipam allocate finish")
+	debugLog.Println("[weave-ipam] cmdAdd finish")	
 	return types.PrintResult(result, conf.CNIVersion)
 }
 

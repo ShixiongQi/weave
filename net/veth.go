@@ -164,7 +164,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 	}); err != nil {
 		return fmt.Errorf("error setting up interface addresses: %s", err)
 	}
-	debugLog.Println("[weave-net] AttachContainer fin")	
+	debugLog.Println("[weave-net] AttachContainer fin")
 	return nil
 }
 

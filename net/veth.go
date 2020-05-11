@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"log"
+	"os"
+
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/j-keck/arping"
 	"github.com/vishvananda/netlink"

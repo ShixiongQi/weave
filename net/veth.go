@@ -150,6 +150,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 			}
 			return nil
 		})
+		debugLog.Println("[weave-net] Alice")
 		if err != nil {
 			return err
 		}
@@ -158,7 +159,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 		}
 
 	}
-
+	debugLog.Println("[weave-net] Bob")
 	if err := WithNetNSLink(ns, ifName, func(veth netlink.Link) error {
 		return setupIfaceAddrs(veth, withMulticastRoute, cidrs)
 	}); err != nil {

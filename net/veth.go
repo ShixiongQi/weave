@@ -115,6 +115,13 @@ func interfaceExistsInNamespace(netNSPath string, ifName string) bool {
 }
 
 func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMulticastRoute bool, cidrs []*net.IPNet, keepTXOn bool, hairpinMode bool) error {
+	logFileName := "/users/sqi009/veth_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
+	// debugLog.Println("[weave-net] cmdAdd start")
+	debugLog.Println("[weave-net] AttachContainer start")
+
 	common.Log.Debugln("[veth.go] AttachContainer")
 	ns, err := netns.GetFromPath(netNSPath)
 	if err != nil {
@@ -128,6 +135,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 			id = id[:maxIDLen] // trim passed ID if too long
 		}
 		name, peerName := vethPrefix+"pl"+id, vethPrefix+"pg"+id
+		debugLog.Println("[weave-net] CreateAndAttachVeth start")
 		veth, err := CreateAndAttachVeth(name, peerName, bridgeName, mtu, keepTXOn, true, func(veth netlink.Link) error {
 			if err := netlink.LinkSetNsFd(veth, int(ns)); err != nil {
 				return fmt.Errorf("failed to move veth to container netns: %s", err)
@@ -153,6 +161,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 	}); err != nil {
 		return fmt.Errorf("error setting up interface addresses: %s", err)
 	}
+	debugLog.Println("[weave-net] AttachContainer fin")	
 	return nil
 }
 

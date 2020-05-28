@@ -184,18 +184,26 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 
 // setupIfaceAddrs expects to be called in the container's netns
 func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IPNet) error {
+	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
+	debugLog.Println("[weave-net] Inside setupIfaceAddrs")
+
 	common.Log.Debugln("[veth.go] setupIfaceAddrs expects to be called in the container's netns")
+	debugLog.Println("[weave-net] AddAddresses start")
 	newAddresses, err := AddAddresses(veth, cidrs)
 	if err != nil {
 		return err
 	}
-
+	debugLog.Println("[weave-net] Attrs start")
 	ifName := veth.Attrs().Name
+	debugLog.Println("[weave-net] iptables.New() start")
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
 	}
-
+	debugLog.Println("[weave-net] iptables.New() start")
 	// Add multicast ACCEPT rules for new subnets
 	for _, ipnet := range newAddresses {
 		acceptRule := []string{"-i", ifName, "-s", subnet(ipnet), "-d", "224.0.0.0/4", "-j", "ACCEPT"}
@@ -209,7 +217,7 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 			}
 		}
 	}
-
+	debugLog.Println("[weave-net] LinkSetUp start")
 	if err := netlink.LinkSetUp(veth); err != nil {
 		return err
 	}
@@ -238,23 +246,31 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 
 // setupIface expects to be called in the container's netns
 func setupIface(ifaceName, newIfName string) error {
+	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
 	common.Log.Debugln("[veth.go] setupIface expects to be called in the container's netns")
+	debugLog.Println("[weave-net] iptables.New() start")
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
 	}
-
+	debugLog.Println("[weave-net] netlink.LinkByName(ifaceName) start")
 	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
 		return err
 	}
+	debugLog.Println("[weave-net] netlink.LinkSetName(link, newIfName) start")
 	if err := netlink.LinkSetName(link, newIfName); err != nil {
 		return err
 	}
 	// This is only called by AttachContainer which is only called in host pid namespace
+	debugLog.Println("[weave-net] configureARPCache(proc, newIfName) start")
 	if err := configureARPCache("/proc", newIfName); err != nil {
 		return err
 	}
+	debugLog.Println("[weave-net] ipt.Append start")
 	return ipt.Append("filter", "INPUT", "-i", newIfName, "-d", "224.0.0.0/4", "-j", "DROP")
 }
 

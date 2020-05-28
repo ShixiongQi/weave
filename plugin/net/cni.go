@@ -70,14 +70,18 @@ func (c *CNIPlugin) getIP(ipamType string, args *skel.CmdArgs) (newResult *curre
 }
 
 func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
-	logFileName := "/users/sqi009/weave_net_cmdAdd_info.log"
-	logFile, _  := os.Create(logFileName)
+	// logFileName := "/users/sqi009/weave_net_cmdAdd_info.log"
+	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	// logFile, _  := os.Create(logFileName)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: cni.go]",log.Lmicroseconds)
 	debugLog.Println("[weave-net] cmdAdd start")
 
 	common.Log.Debugln("[net cni.go] CmdAdd")
+	debugLog.Println("[weave-net] loadNetConf start")
 	conf, err := loadNetConf(args.StdinData)
+	debugLog.Println("[weave-net] loadNetConf fin")
 	if err != nil {
 		return err
 	}
@@ -95,7 +99,7 @@ func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
 	}
 	// Only expecting one address
 	ip := result.IPs[0]
-	debugLog.Println("[weave-net] IPAM finish")
+	
 
 	// If config says nothing about routes or gateway, default one will be via the bridge
 	if len(result.Routes) == 0 && ip.Gateway == nil {
@@ -123,13 +127,14 @@ func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
 		}
 		result.IPs[0].Gateway = bridgeIP
 	}
-
+	debugLog.Println("[weave-net] IPAM finish")
+	debugLog.Println("[weave-net] GetFromPath start")
 	ns, err := netns.GetFromPath(args.Netns)
 	if err != nil {
 		return fmt.Errorf("error accessing namespace %q: %s", args.Netns, err)
 	}
 	defer ns.Close()
-
+	debugLog.Println("[weave-net] Get start")
 	hostNs, err := netns.Get()
 	if err != nil {
 		return fmt.Errorf("error accessing host network namespace: %s", err)
@@ -154,8 +159,9 @@ func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 	debugLog.Println("[weave-net] AttachContainer finish")
-	debugLog.Println("[weave-net] setupRoute start")	
+	debugLog.Println("[weave-net] weavenet.WithNetNSLink start")	
 	if err := weavenet.WithNetNSLink(ns, args.IfName, func(link netlink.Link) error {
+		debugLog.Println("[weave-net] setupRoutes start")
 		return setupRoutes(link, args.IfName, ip.Address, ip.Gateway, result.Routes)
 	}); err != nil {
 		return fmt.Errorf("error setting up routes: %s", err)

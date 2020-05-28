@@ -18,7 +18,13 @@ import (
 
 // create and attach a veth to the Weave bridge
 func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bool, errIfLinkExist bool, init func(peer netlink.Link) error) (*netlink.Veth, error) {
+	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
+	debugLog.Println("[weave-net] Inside the CreateAndAttachVeth()")
 	common.Log.Debugln("[veth.go] CreateAndAttachVeth create and attach a veth to the Weave bridge")
+	debugLog.Println("[weave-net] LinkByName (bridge) start")
 	bridge, err := netlink.LinkByName(bridgeName)
 	if err != nil {
 		return nil, fmt.Errorf(`bridge "%s" not present; did you launch weave?`, bridgeName)
@@ -38,6 +44,7 @@ func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bo
 	if errIfLinkExist {
 		linkAdd = netlink.LinkAdd
 	}
+	debugLog.Println("[weave-net] linkAdd start")
 	if err := linkAdd(veth); err != nil {
 		return nil, fmt.Errorf(`could not create veth pair %s-%s: %s`, name, peerName, err)
 	}
@@ -46,7 +53,7 @@ func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bo
 		netlink.LinkDel(veth)
 		return nil, fmt.Errorf(format, a...)
 	}
-
+	debugLog.Println("[weave-net] ExistingBridgeType start")
 	bridgeType, err := ExistingBridgeType(bridgeName, DatapathName)
 	if err != nil {
 		return cleanup("detect bridge type: %s", err)
@@ -54,6 +61,7 @@ func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bo
 	if err := bridgeType.attach(veth); err != nil {
 		return cleanup("attaching veth %q to %q: %s", name, bridgeName, err)
 	}
+	debugLog.Println("[weave-net] IsFastdp start")
 	if !bridgeType.IsFastdp() && !keepTXOn {
 		if err := EthtoolTXOff(veth.PeerName); err != nil {
 			return cleanup(`unable to set tx off on %q: %s`, peerName, err)
@@ -61,6 +69,7 @@ func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bo
 	}
 
 	if init != nil {
+		debugLog.Println("[weave-net] LinkByName (pod) start")
 		peer, err := netlink.LinkByName(peerName)
 		if err != nil {
 			return cleanup("unable to find peer veth %s: %s", peerName, err)
@@ -69,7 +78,7 @@ func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bo
 			return cleanup("initializing veth: %s", err)
 		}
 	}
-
+	debugLog.Println("[weave-net] LinkSetUp (bridge) start")
 	if err := netlink.LinkSetUp(veth); err != nil {
 		return cleanup("unable to bring veth up: %s", err)
 	}
@@ -118,11 +127,10 @@ func interfaceExistsInNamespace(netNSPath string, ifName string) bool {
 }
 
 func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMulticastRoute bool, cidrs []*net.IPNet, keepTXOn bool, hairpinMode bool) error {
-	logFileName := "/users/sqi009/veth_info.log"
-	logFile, _  := os.Create(logFileName)
+	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
-	// debugLog.Println("[weave-net] cmdAdd start")
 	debugLog.Println("[weave-net] AttachContainer start")
 
 	common.Log.Debugln("[veth.go] AttachContainer")
@@ -140,27 +148,32 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 		name, peerName := vethPrefix+"pl"+id, vethPrefix+"pg"+id
 		debugLog.Println("[weave-net] CreateAndAttachVeth start")
 		veth, err := CreateAndAttachVeth(name, peerName, bridgeName, mtu, keepTXOn, true, func(veth netlink.Link) error {
+			debugLog.Println("[weave-net] LinkSetNsFd start")
 			if err := netlink.LinkSetNsFd(veth, int(ns)); err != nil {
 				return fmt.Errorf("failed to move veth to container netns: %s", err)
 			}
+			debugLog.Println("[weave-net] WithNetNS start")
 			if err := WithNetNS(ns, func() error {
+				debugLog.Println("[weave-net] setupIface start")
 				return setupIface(peerName, ifName)
 			}); err != nil {
 				return fmt.Errorf("error setting up interface: %s", err)
 			}
 			return nil
 		})
-		debugLog.Println("[weave-net] Alice")
+		
 		if err != nil {
 			return err
 		}
+		debugLog.Println("[weave-net] LinkSetHairpin start")
 		if err = netlink.LinkSetHairpin(veth, hairpinMode); err != nil {
 			return fmt.Errorf("unable to set hairpin mode to %t for bridge side of veth %s: %s", hairpinMode, name, err)
 		}
 
 	}
-	debugLog.Println("[weave-net] Bob")
+	debugLog.Println("[weave-net] WithNetNSLink start")
 	if err := WithNetNSLink(ns, ifName, func(veth netlink.Link) error {
+		debugLog.Println("[weave-net] setupIfaceAddrs start")
 		return setupIfaceAddrs(veth, withMulticastRoute, cidrs)
 	}); err != nil {
 		return fmt.Errorf("error setting up interface addresses: %s", err)

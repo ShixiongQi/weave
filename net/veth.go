@@ -227,6 +227,7 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 		time.Sleep(1 * time.Millisecond)
 		arping.GratuitousArpOverIfaceByName(ipnet.IP, ifName)
 	}
+	debugLog.Println("[weave-net] GratuitousArpOverIfaceByName fin")
 	if withMulticastRoute {
 		/* Route multicast packets across the weave network.
 		This must come last in 'attach'. If you change this, change weavewait to match.

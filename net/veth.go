@@ -236,12 +236,14 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 		multicast packets. Since RFC1122 prohibits sending of ICMP
 		errors for packets with multicast destinations, that causes
 		packets larger than the PMTU to be dropped silently.  */
-
+		debugLog.Println("[weave-net] ParseCIDR start")
 		_, multicast, _ := net.ParseCIDR("224.0.0.0/4")
+		debugLog.Println("[weave-net] AddRoute start")
 		if err := AddRoute(veth, netlink.SCOPE_LINK, multicast, nil); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

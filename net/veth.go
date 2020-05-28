@@ -221,6 +221,7 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 	if err := netlink.LinkSetUp(veth); err != nil {
 		return err
 	}
+	debugLog.Println("[weave-net] GratuitousArpOverIfaceByName start")
 	for _, ipnet := range newAddresses {
 		// If we don't wait for a bit here, we see the arp fail to reach the bridge.
 		time.Sleep(1 * time.Millisecond)

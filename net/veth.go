@@ -18,7 +18,7 @@ import (
 
 // create and attach a veth to the Weave bridge
 func CreateAndAttachVeth(name, peerName, bridgeName string, mtu int, keepTXOn bool, errIfLinkExist bool, init func(peer netlink.Link) error) (*netlink.Veth, error) {
-	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFileName := "/users/sqi009/weave-start-time.log"
 	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
@@ -127,7 +127,7 @@ func interfaceExistsInNamespace(netNSPath string, ifName string) bool {
 }
 
 func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMulticastRoute bool, cidrs []*net.IPNet, keepTXOn bool, hairpinMode bool) error {
-	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFileName := "/users/sqi009/weave-start-time.log"
 	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
@@ -184,7 +184,7 @@ func AttachContainer(netNSPath, id, ifName, bridgeName string, mtu int, withMult
 
 // setupIfaceAddrs expects to be called in the container's netns
 func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IPNet) error {
-	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFileName := "/users/sqi009/weave-start-time.log"
 	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)
@@ -250,7 +250,7 @@ func setupIfaceAddrs(veth netlink.Link, withMulticastRoute bool, cidrs []*net.IP
 
 // setupIface expects to be called in the container's netns
 func setupIface(ifaceName, newIfName string) error {
-	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFileName := "/users/sqi009/weave-start-time.log"
 	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: veth.go]",log.Lmicroseconds)

@@ -71,7 +71,7 @@ func (c *CNIPlugin) getIP(ipamType string, args *skel.CmdArgs) (newResult *curre
 
 func (c *CNIPlugin) CmdAdd(args *skel.CmdArgs) error {
 	// logFileName := "/users/sqi009/weave_net_cmdAdd_info.log"
-	logFileName := "/users/sqi009/weave-startup-time.log"
+	logFileName := "/users/sqi009/weave-start-time.log"
 	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	// logFile, _  := os.Create(logFileName)
 	defer logFile.Close()

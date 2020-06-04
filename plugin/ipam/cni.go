@@ -15,11 +15,11 @@ import (
 )
 
 func (i *Ipam) CmdAdd(args *skel.CmdArgs) error {
-
-	logFileName := "/users/sqi009/weave_ipam_cmdAdd_info.log"
-	logFile, _  := os.Create(logFileName)
+	logFileName := "/users/sqi009/weave-start-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	// logFile, _  := os.Create(logFileName)
 	defer logFile.Close()
-	debugLog := log.New(logFile,"[Info: cni.go]",log.Lmicroseconds)
+	debugLog := log.New(logFile,"[Info: weave-ipam.go]",log.Lmicroseconds)
 	debugLog.Println("[weave-ipam] cmdAdd start")
 
 	common.Log.Debugln("[ipam cni.go] CmdAdd")
@@ -27,19 +27,27 @@ func (i *Ipam) CmdAdd(args *skel.CmdArgs) error {
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
 	}
-	debugLog.Println("[weave-ipam] ipam allocate start")
+	debugLog.Println("[weave-ipam] i.Allocate(args) start")
 	result, err := i.Allocate(args)
 	if err != nil {
 		return err
 	}
-	debugLog.Println("[weave-ipam] ipam allocate finish")
+	debugLog.Println("[weave-ipam] i.Allocate(args) finish")
 	debugLog.Println("[weave-ipam] cmdAdd finish")	
 	return types.PrintResult(result, conf.CNIVersion)
 }
 
 func (i *Ipam) Allocate(args *skel.CmdArgs) (types.Result, error) {
+	logFileName := "/users/sqi009/weave-start-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	// logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: weave-ipam.go]",log.Lmicroseconds)
+	debugLog.Println("[weave-ipam] inside Allocate")
+
 	// extract the things we care about
 	common.Log.Debugln("[ipam cni.go] Allocate")
+	debugLog.Println("[weave-ipam] loadIPAMConf(args.StdinData) start")
 	conf, err := loadIPAMConf(args.StdinData)
 	if err != nil {
 		return nil, err
@@ -54,6 +62,7 @@ func (i *Ipam) Allocate(args *skel.CmdArgs) (types.Result, error) {
 	var ipnet *net.IPNet
 
 	if conf.Subnet == "" {
+		debugLog.Println("[weave-ipam] AllocateIP start")
 		ipnet, err = i.weave.AllocateIP(containerID, false)
 	} else {
 		var subnet *net.IPNet
@@ -61,6 +70,7 @@ func (i *Ipam) Allocate(args *skel.CmdArgs) (types.Result, error) {
 		if err != nil {
 			return nil, fmt.Errorf("subnet given in config, but not parseable: %s", err)
 		}
+		debugLog.Println("[weave-ipam] AllocateIPInSubnet start")
 		ipnet, err = i.weave.AllocateIPInSubnet(containerID, subnet, false)
 	}
 
@@ -75,6 +85,7 @@ func (i *Ipam) Allocate(args *skel.CmdArgs) (types.Result, error) {
 		}},
 		Routes: conf.Routes,
 	}
+	debugLog.Println("[weave-ipam] leave Allocate")
 	return result, nil
 }
 
